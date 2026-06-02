@@ -1,5 +1,6 @@
+from django.contrib.auth import authenticate
 from rest_framework import status, viewsets
-from rest_framework.generics import RetrieveUpdateDestroyAPIView
+from rest_framework.generics import RetrieveUpdateDestroyAPIView, get_object_or_404
 from rest_framework.permissions import IsAuthenticated, SAFE_METHODS, IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -53,7 +54,10 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user = User.objects.get(email=serializer.validated_data['email'])
+        user = authenticate(
+            username=serializer.validated_data['email'],
+            password=serializer.validated_data['password']
+        )
         if not user:
             return Response({
                 "error": "اطلاعات داده شده صحیح نمی باشد."
@@ -74,8 +78,8 @@ class RequestOTPView(APIView):
         serializer.is_valid(raise_exception=True)
         phone = serializer.validated_data['phone']
         password = serializer.validated_data['password']
-        user = User.objects.get(phone=phone)
 
+        user = get_object_or_404(User, phone=phone)
         if not user.check_password(password):
             return Response({
                 "error": "اطلاعات وارد شده صحیح نمی باشد."
@@ -94,10 +98,12 @@ class VerifyOTPView(APIView):
         serializer.is_valid(raise_exception=True)
         phone = serializer.validated_data['phone']
         code = serializer.validated_data['code']
-        user = User.objects.get(phone=phone)
-        if user.validate_code(code):
+        user = get_object_or_404(User, phone=phone)
+
+        if user.validate_code(code) and not user.otp_code.has_expired():
             tokens = user.get_tokens()
             return Response(tokens, status=status.HTTP_200_OK)
+
         return Response({
             "error": "کد وارد شده صحیح نمیباشد."
         }, status=status.HTTP_400_BAD_REQUEST)
