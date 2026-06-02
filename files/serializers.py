@@ -31,6 +31,15 @@ class UploadFileSerializer(serializers.Serializer):
             default=Folder.objects.get(user=self._user, name='root')
         )
 
+    def validate_file(self, file):
+        user = self.context.get('request').user
+        max_upload_size = user.get_max_upload_size()
+
+        if max_upload_size < file.size:
+            raise serializers.ValidationError(
+                f'است. {max_upload_size // (1024 * 1024)}فایل ارسالی بزرک تر از مقدار مجاز است. حداکثر اندازه قابل قبول ')
+
+        return file
     @property
     def _user(self):
         request = self.context.get('request', None)
