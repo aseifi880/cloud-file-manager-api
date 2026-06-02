@@ -68,3 +68,15 @@ class FolderListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
         fields = ['id', 'name', 'children', 'files']
+
+
+class FileDownloadSerializer(serializers.ModelSerializer):
+    download_url = serializers.HyperlinkedIdentityField(
+        view_name='download-file',
+        lookup_field='id'
+    )
+
+    class Meta:
+        model = File
+        fields = ['id', 'name', 'size', 'file','download_url']
+

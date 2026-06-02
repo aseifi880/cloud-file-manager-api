@@ -1,7 +1,10 @@
+import django.http
 from django.core.files.storage import default_storage
 from django.db import IntegrityError, transaction
+from django.http import FileResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.utils.encoding import smart_str
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
@@ -12,7 +15,7 @@ from accounts.models import User
 from core.settings import BASE_DIR, MEDIA_ROOT
 from files.models import Folder, File
 from files.serializers import UploadFileSerializer, FolderListSerializer, AddFolderSerializer, FolderSerializer, \
-    FileSerializer
+    FileSerializer, FileDownloadSerializer
 from files.tasks import permanent_delete_folder, permanent_delete_file
 
 
@@ -69,8 +72,7 @@ class DeleteFile(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, file_id):
-        # Retrieve the file (using default manager to ensure it's not already deleted)
-        file_obj = get_object_or_404(File, id=file_id, user=request.user, is_deleted=False)
+        file_obj = get_object_or_404(File, id=file_id, user=request.user)
 
         with transaction.atomic():
             # Soft delete the record
@@ -82,6 +84,7 @@ class DeleteFile(APIView):
             permanent_delete_file.apply_async(args=[file_obj.id], countdown=48 * 3600)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class DeleteFolder(APIView):
     permission_classes = [IsAuthenticated]
@@ -117,3 +120,41 @@ def _soft_delete_folder_tree(folder):
     # Recurse into child folders
     for child in folder.children.all():
         _soft_delete_folder_tree(child)
+
+
+class DownloadFile(APIView):
+    """
+    this view is used to download a file. it isn't used directly in itslef
+    rather used inside a serializer which is in turn used in the FileLink view
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, file_id):
+        file_obj = get_object_or_404(File, id=file_id, user=request.user)
+        file_path = file_obj.file.path
+        if not default_storage.exists(file_path):
+            return Response({'error': 'فایل مورد نظر موجود نیست.'},
+                            status=status.HTTP_404_NOT_FOUND)
+        response = FileResponse(
+            open(file_path, 'rb', smart_str(file_obj.name)),
+                as_attachment=True,
+                filename=file_obj.file.name
+        )
+        response['Content-Type'] = file_obj.file.file.content_type or 'application/octet-stream'
+        response['Content-Length'] = file_obj.file.size
+        return response
+
+
+class FileLink(APIView):
+    """
+    this view is used to return a json response containing the download link of the
+    requested file along with other info.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, file_id):
+
+        file_obj = get_object_or_404(File, id=file_id, user=request.user)
+        serializer = FileSerializer(file_obj, context={'request': request})
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
