@@ -15,9 +15,8 @@ from core.base_model import BaseModel
 
 class User(AbstractUser):
 
-    FREE_TIER = 'free',
-    PRO_TIER = 'pro',
-
+    FREE_TIER = 'free'
+    PRO_TIER = 'pro'
 
     MEMBERSHIP_CHOICES = [
     (FREE_TIER, 'رایگان'),
