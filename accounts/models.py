@@ -14,6 +14,17 @@ from core.base_model import BaseModel
 
 
 class User(AbstractUser):
+
+    FREE_TIER = 'free',
+    PRO_TIER = 'pro',
+
+
+    MEMBERSHIP_CHOICES = [
+    (FREE_TIER, 'رایگان'),
+        (PRO_TIER, 'ویژه'),
+    ]
+
+    membership_status = models.CharField(choices=MEMBERSHIP_CHOICES, max_length=30, default='free')
     email = models.EmailField(unique=True, null=True, blank=True)
     phone = models.CharField(max_length=11, unique=True, null=True, blank=True,
                              validators=[RegexValidator(regex=r'^09\d{9}$',)])
@@ -22,10 +33,20 @@ class User(AbstractUser):
         return self.username if self.username else self.email
 
 
+    def get_max_upload_size(self):
+        kb = 1024
+        mb = 1024 * kb
+        limits = {
+            'free': 10 * mb,
+            'pro': 100 * mb,
+        }
+        return limits.get(self.membership_status, 10 * mb)
+
+
     def send_otp(self):
         if not self.phone:
             return None
-        # will be replaced with an sms api code
+        # will be replaced with a sms api code
         print(f"OTP code for {self.phone} is {self.otp_code.code}")
         return True
 
@@ -65,7 +86,7 @@ class PhoneOTP(BaseModel):
 
     def has_expired(self):
         """
-        returns True if instane doesn't have an expires_at value,
+        returns True if instance doesn't have an expires_at value,
         or simply checks if expires_at time has passed.
         """
         if not self.expires_at:
