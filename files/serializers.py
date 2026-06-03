@@ -36,8 +36,10 @@ class UploadFileSerializer(serializers.Serializer):
         max_upload_size = user.get_max_upload_size()
 
         if max_upload_size < file.size:
-            raise serializers.ValidationError(
-                f'است. {max_upload_size // (1024 * 1024)}فایل ارسالی بزرک تر از مقدار مجاز است. حداکثر اندازه قابل قبول ')
+            max_size = max_upload_size // (1024 * 1024)
+            err = "فایل ارسالی بزرک تر از مقدار مجاز است. حجم فایل باید کمتر از %s مگابایت باشد." % max_size
+
+            raise serializers.ValidationError(err)
 
         return file
     @property
