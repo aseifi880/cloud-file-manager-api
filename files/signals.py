@@ -9,5 +9,5 @@ from files.models import Folder, File
 user = get_user_model()
 @receiver(post_save, sender=user)
 def create_root_folder(sender, instance, created, **kwargs):
-    if created  :
-        Folder.objects.create(user=instance, name="root", parent=None)
+    if created:
+        Folder.create(user=instance, name="root", parent_folder=None)
