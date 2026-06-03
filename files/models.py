@@ -12,20 +12,16 @@ from core.settings import BASE_DIR, MEDIA_ROOT
 User = get_user_model()
 
 def get_folder_path(instance: 'Folder', user: 'User'):
-    """
-
-    :param instance: an instance of folder object
-    :param user: the user to which the folder belongs to
-    :return: returns the absolute path of instance which will be created using Path.mkdir
-    """
-    parent = instance.parent
     os_friendly_email_address = user.email.replace('@', '_at_')
-    folder_path = Path(BASE_DIR / MEDIA_ROOT / "files" / os_friendly_email_address)
-    path = os.path.join(parent.name, instance.name) if parent else instance.name
-    while parent.parent:
-        parent = parent.parent
-        path = os.path.join(parent.name, path)
-    return folder_path / path
+    base_path = Path(BASE_DIR / MEDIA_ROOT / "files" / os_friendly_email_address)
+
+    path_parts = []
+    current = instance
+    while current:
+        path_parts.append(current.name)
+        current = current.parent
+    path_parts.reverse()
+    return base_path / '/'.join(path_parts)
 
 def get_file_path(instance: 'File', filename: str):
     user = instance.user
