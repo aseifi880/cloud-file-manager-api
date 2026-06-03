@@ -41,6 +41,30 @@ class User(AbstractUser):
         }
         return limits.get(self.membership_status, 10 * mb)
 
+    def get_storage_quota(self):
+        kb = 1024
+        mb = 1024 * kb
+        gb = 1024 * mb
+        quota = {
+            'free': 20 * mb,
+            'pro': 100 * gb,
+        }
+        return quota.get(self.membership_status, 10 * gb)
+
+    def get_current_storage_usage(self, in_mb=False, in_gb=False):
+        """
+        if in_mb and in_gb are False returns the total amount of storage
+        used by the user in bytes, o.w. returns it in either megabytes or gigabytes
+        :param in_mb: bool
+        :param in_gb: bool
+        :return: int | float
+        """
+        total = self.files.aggregate(total=models.Sum('size'))['total']
+        if in_mb:
+            return total // (1024 * 1024)
+        if in_gb:
+            return total // (1024 ** 3)
+        return total or 0
 
     def send_otp(self):
         if not self.phone:
@@ -72,7 +96,7 @@ class User(AbstractUser):
         super().save(*args, **kwargs)
         otp, _ =PhoneOTP.objects.get_or_create(user=self)
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = 'email' or 'phone'
     REQUIRED_FIELDS = []
 
     objects = CustomUserManager()

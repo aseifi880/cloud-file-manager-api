@@ -33,12 +33,21 @@ class UploadFileSerializer(serializers.Serializer):
 
     def validate_file(self, file):
         user = self.context.get('request').user
-        max_upload_size = user.get_max_upload_size()
 
+        # file size limitation
+        max_upload_size = user.get_max_upload_size()
         if max_upload_size < file.size:
             max_size = max_upload_size // (1024 * 1024)
             err = "فایل ارسالی بزرک تر از مقدار مجاز است. حجم فایل باید کمتر از %s مگابایت باشد." % max_size
 
+            raise serializers.ValidationError(err)
+
+        # storage limitation
+        storage_quota = user.get_storage_quota()
+        storage_used = user.get_current_storage_usage()
+        if storage_used + file.size > storage_quota:
+            remaining = (storage_quota - storage_used) // 1024 ** 3
+            err = "شما %s GB حجم باقی مانده دارید. فایل ارسالی بزرگ تر از این مقدار است." % remaining
             raise serializers.ValidationError(err)
 
         return file

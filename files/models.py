@@ -4,7 +4,6 @@ from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.db import models, transaction
 
-from core import settings
 from core.base_model import BaseModel
 from core.settings import BASE_DIR, MEDIA_ROOT
 
