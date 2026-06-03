@@ -24,14 +24,17 @@ def get_folder_path(instance: 'Folder', user: 'User'):
 
 def get_file_path(instance: 'File', filename: str):
     user = instance.user
-    parent = instance.folder.parent
     os_friendly_email_address = user.email.replace('@', '_at_')
-    folder_path = os.path.join( "files", os_friendly_email_address)
-    path = os.path.join(parent.name, instance.folder.name) if parent else instance.folder.name
-    while parent.parent:
-        parent = parent.parent
-        path = os.path.join(parent.name, path)
-    return os.path.join(folder_path, path, filename.replace(' ', '_'))
+    base_path: str = os.path.join("files", os_friendly_email_address)
+    immediate_folder = instance.folder
+    if immediate_folder.parent is None:
+        return os.path.join(base_path, immediate_folder.name, filename.replace(' ', '_'))
+    parent_folder: Folder = immediate_folder.parent
+    path = os.path.join(parent_folder.name, instance.folder.name)
+    while parent_folder.parent:
+        parent_folder = parent_folder.parent
+        path = os.path.join(parent_folder.name, path)
+    return os.path.join(base_path, path, filename.replace(' ', '_'))
 
 
 
