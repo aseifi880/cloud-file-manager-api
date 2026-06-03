@@ -46,8 +46,8 @@ class UploadFileSerializer(serializers.Serializer):
         storage_quota = user.get_storage_quota()
         storage_used = user.get_current_storage_usage()
         if storage_used + file.size > storage_quota:
-            remaining = (storage_quota - storage_used) // 1024 ** 3
-            err = "شما %s GB حجم باقی مانده دارید. فایل ارسالی بزرگ تر از این مقدار است." % remaining
+            remaining = (storage_quota - storage_used) // 1024 ** 2
+            err = "شما %s مگابایت حجم باقی مانده دارید. فایل ارسالی بزرگ تر از این مقدار است." % remaining
             raise serializers.ValidationError(err)
 
         return file
