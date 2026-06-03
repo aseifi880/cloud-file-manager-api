@@ -64,7 +64,7 @@ class Folder(BaseModel):
             return folder
 
     class Meta:
-        unique_together = ('name', 'user')
+        unique_together = ('name', 'user', 'parent', 'is_deleted')
 
 
 class File(BaseModel):
@@ -95,4 +95,4 @@ class File(BaseModel):
         return self.name if self.name else self.file.name
 
     class Meta:
-        unique_together = ('name', 'folder')
+        unique_together = ('name', 'folder', 'file', 'is_deleted')
