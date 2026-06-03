@@ -24,12 +24,13 @@ class User(AbstractUser):
     ]
 
     membership_status = models.CharField(choices=MEMBERSHIP_CHOICES, max_length=30, default='free')
+    username = models.CharField(unique=False, null=True, blank=True, max_length=30)
     email = models.EmailField(unique=True, null=True, blank=True)
     phone = models.CharField(max_length=11, unique=True, null=True, blank=True,
                              validators=[RegexValidator(regex=r'^09\d{9}$',)])
 
     def __str__(self):
-        return self.username if self.username else self.email
+        return self.email or self.phone or self.username or "Unknown"
 
 
     def get_max_upload_size(self):
@@ -96,8 +97,8 @@ class User(AbstractUser):
         super().save(*args, **kwargs)
         otp, _ =PhoneOTP.objects.get_or_create(user=self)
 
-    USERNAME_FIELD = 'email' or 'phone'
-    REQUIRED_FIELDS = []
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['phone']
 
     objects = CustomUserManager()
 

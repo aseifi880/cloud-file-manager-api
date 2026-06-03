@@ -81,14 +81,16 @@ class DeleteFile(APIView):
             file_obj.save(update_fields=['is_deleted', 'deleted_at'])
 
             # Schedule permanent physical deletion after 48 hours (in seconds)
-            permanent_delete_file.apply_async(args=[file_obj.id], countdown=48 * 3600)
+            permanent_delete_file.apply_async(args=[file_obj.id], countdown=15)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class DeleteFolder(APIView):
     permission_classes = [IsAuthenticated]
-
+    # TODO bug: when there is a folder with is_deleted=True and we create another
+    # folder with same name and try to delete it, we get a uniqueness error as it violates
+    # the constraint set in the Folde model.
     def delete(self, request, folder_id):
         folder = get_object_or_404(Folder, id=folder_id, user=request.user, is_deleted=False)
 
@@ -102,7 +104,7 @@ class DeleteFolder(APIView):
             _soft_delete_folder_tree(folder)
 
             # Schedule permanent physical cleanup of the entire tree after 48 hours
-            permanent_delete_folder.apply_async(args=[folder.id], countdown=48 * 3600)
+            permanent_delete_folder.apply_async(args=[folder.id], countdown=15)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
