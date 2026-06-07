@@ -5,14 +5,17 @@ from django.http import FileResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.encoding import smart_str
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
-from rest_framework.generics import get_object_or_404
+from rest_framework.filters import SearchFilter
+from rest_framework.generics import get_object_or_404, ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import User
 from core.settings import BASE_DIR, MEDIA_ROOT
+from files.filters import FileListFilter
 from files.models import Folder, File
 from files.serializers import UploadFileSerializer, FolderListSerializer, AddFolderSerializer, FolderSerializer, \
     FileSerializer, FileDownloadSerializer
@@ -88,9 +91,7 @@ class DeleteFile(APIView):
 
 class DeleteFolder(APIView):
     permission_classes = [IsAuthenticated]
-    # TODO bug: when there is a folder with is_deleted=True and we create another
-    # folder with same name and try to delete it, we get a uniqueness error as it violates
-    # the constraint set in the Folde model.
+
     def delete(self, request, folder_id):
         folder = get_object_or_404(Folder, id=folder_id, user=request.user, is_deleted=False)
 
@@ -160,3 +161,17 @@ class FileLink(APIView):
         serializer = FileSerializer(file_obj, context={'request': request})
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class FileSearchView(ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = FileListFilter
+    serializer_class = FileSerializer
+
+    def get_queryset(self):
+        queryset = File.objects.select_related('folder').filter(user=self.request.user).all()
+        return queryset
+
+
