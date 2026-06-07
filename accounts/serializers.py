@@ -44,7 +44,7 @@ class UserRetrieveViewSerializer(serializers.ModelSerializer):
     max_file_size_mb = serializers.SerializerMethodField()
 
     def get_max_file_size_mb(self, obj):
-        return obj.get_max_file_size() / (1024 * 1024)
+        return obj.get_max_upload_size() / (1024 * 1024)
 
     class Meta:
         model = User
