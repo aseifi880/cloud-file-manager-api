@@ -62,7 +62,7 @@ class Folder(BaseModel):
             return folder
 
     class Meta:
-        unique_together = ('name', 'user', 'parent', 'is_deleted')
+        unique_together = ('name', 'user', 'parent', 'is_deleted', 'deleted_at')
 
 
 class File(BaseModel):
