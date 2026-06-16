@@ -13,17 +13,31 @@ from accounts.managers import CustomUserManager
 from core.base_model import BaseModel
 
 
+class Plan(BaseModel):
+    name = models.CharField(max_length=100, unique=True, db_index=True)
+    display_name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+    price = models.PositiveBigIntegerField(default=0)
+    max_upload_size = models.PositiveBigIntegerField(default=100*1024*1024)
+    storage_quota = models.PositiveBigIntegerField(default=1024*1024*1024)
+
+    def __str__(self):
+        return self.name
+
+def get_free_plan():
+    plan, created = Plan.objects.get_or_create(name="free")
+    if created:
+        plan.max_upload_size = 10 * 1024 * 1024
+        plan.storage_quota = 1024 * 1024 * 1024
+    return plan
+
 class User(AbstractUser):
 
-    FREE_TIER = 'free'
-    PRO_TIER = 'pro'
-
-    MEMBERSHIP_CHOICES = [
-    (FREE_TIER, 'رایگان'),
-        (PRO_TIER, 'ویژه'),
-    ]
-
-    membership_status = models.CharField(choices=MEMBERSHIP_CHOICES, max_length=30, default='free')
+    membership_status = models.ForeignKey(Plan, on_delete=models.PROTECT,
+                                          help_text="plan the user is subscribed to",
+                                          null=True,
+                                          default=get_free_plan,
+                                          related_name="users")
     username = models.CharField(unique=False, null=True, blank=True, max_length=30)
     email = models.EmailField(unique=True, null=True, blank=True)
     phone = models.CharField(max_length=11, unique=True, null=True, blank=True,
@@ -32,25 +46,11 @@ class User(AbstractUser):
     def __str__(self):
         return self.email or self.phone or self.username or "Unknown"
 
-
     def get_max_upload_size(self):
-        kb = 1024
-        mb = 1024 * kb
-        limits = {
-            'free': 10 * mb,
-            'pro': 100 * mb,
-        }
-        return limits.get(self.membership_status, 10 * mb)
+        return self.membership_status.max_upload_size
 
     def get_storage_quota(self):
-        kb = 1024
-        mb = 1024 * kb
-        gb = 1024 * mb
-        quota = {
-            'free': 20 * mb,
-            'pro': 100 * gb,
-        }
-        return quota.get(self.membership_status, 10 * gb)
+        return self.membership_status.storage_quota
 
     def get_current_storage_usage(self, in_mb=False, in_gb=False):
         """
@@ -73,7 +73,6 @@ class User(AbstractUser):
         # will be replaced with a sms api code
         print(f"OTP code for {self.phone} is {self.otp_code.code}")
         return True
-
 
     def get_tokens(self) -> Dict[str, str]:
         """
