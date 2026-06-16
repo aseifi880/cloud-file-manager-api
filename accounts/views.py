@@ -1,14 +1,15 @@
 from django.contrib.auth import authenticate
 from rest_framework import status, viewsets
-from rest_framework.generics import RetrieveUpdateDestroyAPIView, get_object_or_404
+from rest_framework.generics import RetrieveUpdateDestroyAPIView, get_object_or_404, ListAPIView
 from rest_framework.permissions import IsAuthenticated, SAFE_METHODS, IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import User
+from .models import User, Plan
 from .serializers import RegisterSerializer, LoginSerializer, RequestOTPSerializer, VerifyOTPSerializer, \
-    UserRetrieveViewSerializer, UserUpdateViewSerializer, UserViewSetSerializer
+    UserRetrieveViewSerializer, UserUpdateViewSerializer, UserViewSetSerializer, PlanListSerializer, \
+    UserUpgradeSerializer
 
 
 #region Auth
@@ -128,3 +129,23 @@ class UserView(RetrieveUpdateDestroyAPIView):
         if self.request.method in SAFE_METHODS:
             return UserRetrieveViewSerializer
         return UserUpdateViewSerializer
+
+
+class PlanListView(ListAPIView):
+    queryset = Plan.objects.all()
+    serializer_class = PlanListSerializer
+
+
+class UserUpgradeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request):
+        serializer = UserUpgradeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        plan_id = serializer.validated_data['id']
+        plan = Plan.objects.get(id=plan_id)
+        user = request.user
+        user.plan = plan
+        return Response({
+            "message": "سطح کاربر با موفقیت ارتقا یافت."
+        })

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from accounts.models import User
+from accounts.models import User, Plan
 
 
 # region Auth
@@ -64,3 +64,14 @@ class UserUpdateViewSerializer(serializers.ModelSerializer):
         model = User
         fields = ("email", "first_name", "last_name", "phone")
 
+
+class PlanListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Plan
+        fields = ["id", "name", "description", "price", "max_upload_size", "storage_quota"]
+
+
+class UserUpgradeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Plan
+        fields = ["id"]

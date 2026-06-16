@@ -15,7 +15,9 @@ urlpatterns = [
     path("request-otp/", views.RequestOTPView.as_view(), name="request-otp"),
     path("verify-otp/", views.VerifyOTPView.as_view(), name="verify_otp"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("plans/", views.PlanListView.as_view(), name="plan-list"),
     path("myuser/", views.UserView.as_view(), name="user"),
+    path("myuser/upgrade/", views.UserUpgradeView.as_view(), name="user_upgrade"),
 
 ]
 urlpatterns += router.urls
