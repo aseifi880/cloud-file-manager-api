@@ -1,7 +1,7 @@
 from django.urls import path
 
 from files.views import FolderListView, UploadFile, AddFolder, DeleteFolder, DeleteFile, DownloadFile, FileLink, \
-    FileSearchView
+    FileSearchView, DirectoryUploadAPIView
 
 urlpatterns = [
     path('myfolders/', FolderListView.as_view(), name='folder-list'),
@@ -14,4 +14,6 @@ urlpatterns = [
     path('myfiles/<int:file_id>/download/', FileLink.as_view(), name='download-link'),
     # append ?search=<keyword> for search
     path('myfiles/', FileSearchView.as_view(), name='myfiles-search'),
+    # for uploading entire directories, though in essence it just builds up the path of each file, and places them there
+    path('upload_directory/', DirectoryUploadAPIView.as_view(), name='upload-directory'),
 ]
