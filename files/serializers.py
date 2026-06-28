@@ -100,3 +100,35 @@ class FileDownloadSerializer(serializers.ModelSerializer):
         model = File
         fields = ['id', 'name', 'size', 'file','download_url']
 
+
+class DirectoryUploadSerializer(serializers.Serializer):
+
+    parent_folder = serializers.PrimaryKeyRelatedField(
+        queryset=Folder.objects.all()
+    )
+
+    paths = serializers.ListField(
+        child=serializers.CharField()
+    )
+
+    def validate(self, attrs):
+
+        files = self.context["request"].FILES.getlist("files")
+
+        if len(files) != len(attrs["paths"]):
+            raise serializers.ValidationError(
+                "Files and paths do not match."
+            )
+
+        attrs["files"] = files
+
+        return attrs
+
+    def save(self):
+
+        return Folder.upload_directory(
+            user=self.context["request"].user,
+            parent_folder=self.validated_data["parent_folder"],
+            uploaded_files=self.validated_data["files"],
+            relative_paths=self.validated_data["paths"],
+        )

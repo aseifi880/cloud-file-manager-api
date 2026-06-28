@@ -1,24 +1,20 @@
-import django.http
 from django.core.files.storage import default_storage
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.http import FileResponse
-from django.shortcuts import render
 from django.utils import timezone
 from django.utils.encoding import smart_str
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
-from rest_framework.filters import SearchFilter
 from rest_framework.generics import get_object_or_404, ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.models import User
-from core.settings import BASE_DIR, MEDIA_ROOT
 from files.filters import FileListFilter
 from files.models import Folder, File
 from files.serializers import UploadFileSerializer, FolderListSerializer, AddFolderSerializer, FolderSerializer, \
-    FileSerializer, FileDownloadSerializer
+    FileSerializer, DirectoryUploadSerializer
+
 from files.tasks import permanent_delete_folder, permanent_delete_file
 
 
@@ -175,3 +171,24 @@ class FileSearchView(ListAPIView):
         return queryset
 
 
+class DirectoryUploadAPIView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        serializer = DirectoryUploadSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+
+        serializer.is_valid(raise_exception=True)
+
+        files = serializer.save()
+
+        return Response(
+            {
+                "uploaded": len(files)
+            },
+            status=201,
+        )
