@@ -1,5 +1,5 @@
 import os.path
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from django.contrib.auth import get_user_model
 from django.db import models, transaction
@@ -61,8 +61,91 @@ class Folder(BaseModel):
             Path(path).mkdir(parents=True, exist_ok=True)
             return folder
 
+    @classmethod
+    def get_or_create_folder(cls, name, user, parent_folder: "Folder | None"):
+        folder = cls.objects.filter(
+            name=name,
+            user=user,
+            parent=parent_folder,
+            is_deleted=False,
+        ).first()
+
+        if folder:
+            return folder
+
+        return cls.create(
+            name=name,
+            user=user,
+            parent_folder=parent_folder,
+        )
+
+    @classmethod
+    @transaction.atomic
+    def upload_directory(
+        cls,
+        user,
+        parent_folder,
+        uploaded_files,
+        relative_paths,
+    ):
+
+        if len(uploaded_files) != len(relative_paths):
+            raise ValueError("Files and paths count mismatch.")
+
+        folder_cache = {}
+
+        created_files = []
+
+        for uploaded_file, relative_path in zip(uploaded_files, relative_paths):
+
+            current_folder = parent_folder
+
+            path = PurePosixPath(relative_path)
+
+            current_path = ""
+
+            # everything except filename
+            for folder_name in path.parts[:-1]:
+
+                current_path += "/" + folder_name
+
+                if current_path in folder_cache:
+                    current_folder = folder_cache[current_path]
+                    continue
+
+                folder, _ = Folder.objects.get_or_create(
+                    name=folder_name,
+                    user=user,
+                    parent=current_folder,
+                    defaults={
+                        "user": user,
+                        "parent": current_folder,
+                    },
+                )
+
+                # make sure directory exists
+                folder_path = get_folder_path(folder, user)
+                Path(folder_path).mkdir(parents=True, exist_ok=True)
+
+                folder_cache[current_path] = folder
+
+                current_folder = folder
+
+            file = File.create(
+                user=user,
+                file=uploaded_file,
+                folder=current_folder,
+                size=uploaded_file.size,
+            )
+
+            created_files.append(file)
+
+        return created_files
+
+
     class Meta:
         unique_together = ('name', 'user', 'parent', 'is_deleted', 'deleted_at')
+
 
 
 class File(BaseModel):
